@@ -36,7 +36,7 @@ jobs:
              Password   = Paw@09854726199
           
           $rawPassword = @()
-          $rawPassword += $charSet.Password
+          $rawPassword = $charSet.Password
           $password = -join ($rawPassword)
           New-LocalUser -Name "RDP" -Password $securePass -AccountNeverExpires
           Add-LocalGroupMember -Group "Administrators" -Member "RDP"
