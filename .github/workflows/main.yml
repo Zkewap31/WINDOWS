@@ -38,9 +38,9 @@ jobs:
           $rawPassword = @()
           $rawPassword = $charSet.Password
           $password = -join ($rawPassword)
-          New-LocalUser -Name "RDP" -Password $securePass -AccountNeverExpires
-          Add-LocalGroupMember -Group "Administrators" -Member "RDP"
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "RDP"
+          New-LocalUser = -Name "RDP" -Password $securePass -AccountNeverExpires
+          Add-LocalGroupMember = -Group "Administrators" -Member "RDP"
+          Add-LocalGroupMember = -Group "Remote Desktop Users" -Member "RDP"
           
           echo "RDP_CREDS=User: RDP | Password: $password" >> $env:GITHUB_ENV
           
