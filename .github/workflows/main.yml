@@ -11,41 +11,23 @@ jobs:
     steps:
       - name: Configure Core RDP Settings
         run: |
-          # Enable Remote Desktop and disable Network Level Authentication
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
-                             -Name "fDenyTSConnections" -Value 0 -Force
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-                             -Name "UserAuthentication" -Value 0 -Force
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-                             -Name "SecurityLayer" -Value 0 -Force
-
-          # Remove existing firewall rule to avoid duplication
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
-          netsh advfirewall firewall add rule name="RDP-Tailscale" `
-            dir=in action=allow protocol=TCP localport=3389
-
-          # Restart Remote Desktop service
+          netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
           Restart-Service -Name TermService -Force
 
       - name: Create RDP User with own Password
         run: |
-         $password = "Paw@09854726199"
-         $securePass = ConvertTo-SecureString $password -AsPlainText -Force 
-            
-         if (-not (Get-LocalUser -Name "RDP" -ErrorAction SilentlyContinue)) {
-             New-LocalUser -Name "RDP" -Password $securePass -AccountNeverExpires
-         }
-          
-         Add-LocalGroupMember -Group "Administrators" -Member "RDP"
-         Add-LocalGroupMember -Group "Remote Desktop Users" -Member "RDP"
-          
-         echo "RDP_CREDS=User: RDP | Password: (stored in secrets)" >> $env:GITHUB_ENV
-          
-         if (-not (Get-LocalUser -Name "RDP")) {
-             Write-Error "User creation failed"
-             exit 1
-         }
-              
+          $password = "Paw@09854726199"
+          $securePass = ConvertTo-SecureString $password -AsPlainText -Force 
+          if (-not (Get-LocalUser -Name "RDP" -ErrorAction SilentlyContinue)) { New-LocalUser -Name "RDP" -Password $securePass -AccountNeverExpires }
+          Add-LocalGroupMember -Group "Administrators" -Member "RDP"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "RDP"
+          echo "RDP_CREDS=User: RDP | Password: (stored in secrets)" >> $env:GITHUB_ENV
+          if (-not (Get-LocalUser -Name "RDP")) { Write-Error "User creation failed"; exit 1 }
+
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
@@ -57,72 +39,63 @@ jobs:
       - name: Establish Tailscale Connection
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-$env:GITHUB_RUN_ID
-          
-          $tsIP = $null
-          $retries = 0
+          $tsIP = $null; $retries = 0
           while (-not $tsIP -and $retries -lt 10) {
               $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
               Start-Sleep -Seconds 5
               $retries++
           }
-          
-          if (-not $tsIP) {
-              Write-Error "Tailscale IP not assigned. Exiting."
-              exit 1
-          }
+          if (-not $tsIP) { Write-Error "Tailscale IP not assigned. Exiting."; exit 1 }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV 
 
       - name: Download CleanFlash Installer
         run: |
           $desktopPath = "C:\Users\RDP\Desktop\RDP_Files"
-          
-          # Ensure Desktop folder exists
-          if (-not (Test-Path $desktopPath)) {
-              New-Item -ItemType Directory -Path $desktopPath
-          }
-
+          if (-not (Test-Path $desktopPath)) { New-Item -ItemType Directory -Path $desktopPath }
           $appUrl = "https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe"
           $downloadPath = Join-Path $desktopPath "CleanFlash_Installer.exe"
-
           Invoke-WebRequest -Uri $appUrl -OutFile $downloadPath
           Write-Host "CleanFlash installer downloaded to $downloadPath"
 
       - name: Download and Extract Google Drive ZIP
         run: |
           $desktopPath = "C:\Users\RDP\Desktop\RDP_Files"
-          
-          # Ensure Desktop folder exists
-          if (-not (Test-Path $desktopPath)) {
-              New-Item -ItemType Directory -Path $desktopPath
-          }
-
+          if (-not (Test-Path $desktopPath)) { New-Item -ItemType Directory -Path $desktopPath }
           $zipUrl = "https://drive.google.com/uc?export=download&id=1c5iBiZ82HDhurlOLSxErFHQPO1OL4Xmu"
           $zipPath = "$env:TEMP\RDP_Files.zip"
-
           Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
           Expand-Archive -Path $zipPath -DestinationPath $desktopPath -Force
           Remove-Item $zipPath -Force
 
-      - name: Apply Dark Mode Theme
+      - name: Schedule Dark Mode on RDP Login
         run: |
-          # Force apps and system UI into dark mode
-          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" -Value 0 -Force
-          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "SystemUsesLightTheme" -Value 0 -Force
+          $taskName = "ApplyDarkModeRDP"
+          $scriptPath = "C:\Users\RDP\Desktop\RDP_Files\ApplyDarkMode.ps1"
+          @"
+          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme' -Value 0 -Force
+          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'SystemUsesLightTheme' -Value 0 -Force
+          $color = 0x202020
+          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\DWM' -Name 'ColorizationColor' -Value $color -Force
+          "@ | Out-File -FilePath $scriptPath -Encoding UTF8
+          schtasks /Create /TN $taskName /TR "powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`"" /SC ONLOGON /RU RDP /F
+          Write-Host "Scheduled task created to apply dark mode on RDP login"
 
-          # Optional: Change taskbar/start menu accent color to dark gray (RGB: 32,32,32)
-          $color = 0x202020 # hex for dark gray
-          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\DWM" -Name "ColorizationColor" -Value $color -Force
-
-          Write-Host "Dark mode applied successfully!"
+      - name: Create Desktop Shortcut to RDP_Files
+        run: |
+          $WshShell = New-Object -ComObject WScript.Shell
+          $desktopShortcut = "$env:USERPROFILE\Desktop\RDP_Files.lnk"
+          $targetFolder = "C:\Users\RDP\Desktop\RDP_Files"
+          $shortcut = $WshShell.CreateShortcut($desktopShortcut)
+          $shortcut.TargetPath = $targetFolder
+          $shortcut.IconLocation = "shell32.dll, 3"
+          $shortcut.Save()
+          Write-Host "Desktop shortcut to RDP_Files created!"
 
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
           $testResult = Test-NetConnection -ComputerName $env:TAILSCALE_IP -Port 3389
-          if (-not $testResult.TcpTestSucceeded) {
-              Write-Error "TCP connection to RDP port 3389 failed"
-              exit 1
-          }
+          if (-not $testResult.TcpTestSucceeded) { Write-Error "TCP connection to RDP port 3389 failed"; exit 1 }
           Write-Host "TCP connectivity successful!"
 
       - name: Maintain Connection
@@ -132,8 +105,7 @@ jobs:
           Write-Host "Username: RDP"
           Write-Host "Password: $(echo $env:RDP_CREDS)"
           Write-Host "==================`n"
-          
           while ($true) {
               Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
-              Start-Sleep -Seconds 300   
+              Start-Sleep -Seconds 300
           }
