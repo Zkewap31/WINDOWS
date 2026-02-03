@@ -72,13 +72,18 @@ jobs:
           }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV 
 
-      - name: Download and Install CleanFlash
+      - name: Download CleanFlash Installer
         run: |
           $appUrl = "https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe"
-          $installerPath = "$env:TEMP\CleanFlash.exe"
-          Invoke-WebRequest -Uri $appUrl -OutFile $installerPath
-          Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait
-          Remove-Item $installerPath -Force
+          $downloadPath = "C:\RDP_Files\CleanFlash_Installer.exe"
+          
+          # Ensure folder exists
+          if (-not (Test-Path "C:\RDP_Files")) {
+              New-Item -ItemType Directory -Path "C:\RDP_Files"
+          }
+
+          Invoke-WebRequest -Uri $appUrl -OutFile $downloadPath
+          Write-Host "CleanFlash installer downloaded to $downloadPath"
 
       - name: Download and Extract Google Drive ZIP
         run: |
