@@ -50,11 +50,11 @@ jobs:
               
       - name: Download CleanFlash Installer
         run: |
-           curl -L -o CleanFlash.exe https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.e
+           curl -L -o CleanFlash.exe https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe
         
       - name: Install CleanFlash
         run: |
-           CleanFlash.exe /S 
+           CleanFlash_34.0.0.330_Installer.exe /S 
            
       - name: Install Tailscale
         run: |
