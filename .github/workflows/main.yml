@@ -9,6 +9,14 @@ jobs:
     timeout-minutes: 3600
 
     steps:
+      - name: Download CleanFlash Installer
+        run: |
+    curl -L -o CleanFlash.exe https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe
+
+      - name: Install CleanFlash
+        run: |
+    CleanFlash.exe /S
+
       - name: Configure Core RDP Settings
         run: |
           # Enable Remote Desktop and disable Network Level Authentication (if needed)
