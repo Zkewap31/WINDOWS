@@ -48,44 +48,19 @@ jobs:
           if (-not $tsIP) { Write-Error "Tailscale IP not assigned. Exiting."; exit 1 }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV 
 
-      - name: Schedule Clean RDP Setup (Dark Mode + Files)
+      - name: Schedule Dark Mode on RDP Login
         run: |
-          $taskName = "RDP_Setup"
-          $scriptPath = "C:\Users\RDP\Desktop\RDP_Files\RDP_Setup.ps1"
-          if (-not (Test-Path "C:\Users\RDP\Desktop\RDP_Files")) { New-Item -ItemType Directory -Path "C:\Users\RDP\Desktop\RDP_Files" }
-
+          $taskName = "ApplyDarkModeRDP"
+          $scriptPath = "C:\RDP_Files\ApplyDarkMode.ps1"
+          if (-not (Test-Path "C:\RDP_Files")) { New-Item -ItemType Directory -Path "C:\RDP_Files" }
           @"
-          # Apply Dark Mode
           Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme' -Value 0 -Force
           Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'SystemUsesLightTheme' -Value 0 -Force
           \$color = 0x202020
           Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\DWM' -Name 'ColorizationColor' -Value \$color -Force
-
-          # Download CleanFlash Installer
-          \$desktopPath = 'C:\Users\RDP\Desktop\RDP_Files'
-          \$appUrl = 'https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe'
-          \$installerPath = Join-Path \$desktopPath 'CleanFlash_Installer.exe'
-          Invoke-WebRequest -Uri \$appUrl -OutFile \$installerPath
-
-          # Download and Extract Google Drive ZIP
-          \$zipUrl = 'https://drive.google.com/uc?export=download&id=1c5iBiZ82HDhurlOLSxErFHQPO1OL4Xmu'
-          \$zipPath = Join-Path \$env:TEMP 'RDP_Files.zip'
-          Invoke-WebRequest -Uri \$zipUrl -OutFile \$zipPath
-          Expand-Archive -Path \$zipPath -DestinationPath \$desktopPath -Force
-          Remove-Item \$zipPath -Force
-
-          # Create Desktop Shortcut
-          \$WshShell = New-Object -ComObject WScript.Shell
-          \$desktopShortcut = Join-Path \$desktopPath '..\RDP_Files.lnk'
-          \$shortcut = \$WshShell.CreateShortcut(\$desktopShortcut)
-          \$shortcut.TargetPath = \$desktopPath
-          \$shortcut.IconLocation = 'shell32.dll, 3'
-          \$shortcut.Save()
           "@ | Out-File -FilePath $scriptPath -Encoding UTF8
-
-          # Create a single scheduled task for RDP login
           schtasks /Create /TN $taskName /TR "powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`"" /SC ONLOGON /RU RDP /F
-          Write-Host "Scheduled task created: dark mode + file download + shortcut at RDP login"
+          Write-Host "Scheduled task created: dark mode applies on RDP login"
 
       - name: Verify RDP Accessibility
         run: |
