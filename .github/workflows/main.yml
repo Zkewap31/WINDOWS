@@ -54,7 +54,7 @@ jobs:
         
       - name: Install CleanFlash
         run: |
-           CleanFlash_34.0.0.330_Installer.exe /S 
+           CleanFlash.exe /S
            
       - name: Install Tailscale
         run: |
