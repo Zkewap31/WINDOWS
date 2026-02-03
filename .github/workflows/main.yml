@@ -48,52 +48,44 @@ jobs:
           if (-not $tsIP) { Write-Error "Tailscale IP not assigned. Exiting."; exit 1 }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV 
 
-      - name: Schedule Smart RDP Setup (Dark Mode + Files)
+      - name: Schedule Clean RDP Setup (Dark Mode + Files)
         run: |
-          $taskName = "SmartRDPSetup"
-          $scriptPath = "C:\Users\RDP\Desktop\RDP_Files\SmartRDPSetup.ps1"
+          $taskName = "RDP_Setup"
+          $scriptPath = "C:\Users\RDP\Desktop\RDP_Files\RDP_Setup.ps1"
           if (-not (Test-Path "C:\Users\RDP\Desktop\RDP_Files")) { New-Item -ItemType Directory -Path "C:\Users\RDP\Desktop\RDP_Files" }
 
           @"
-          # === Dark Mode ===
+          # Apply Dark Mode
           Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme' -Value 0 -Force
           Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'SystemUsesLightTheme' -Value 0 -Force
           \$color = 0x202020
           Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\DWM' -Name 'ColorizationColor' -Value \$color -Force
 
-          # === Desktop Path ===
+          # Download CleanFlash Installer
           \$desktopPath = 'C:\Users\RDP\Desktop\RDP_Files'
-
-          # === Download CleanFlash Installer if missing ===
-          \$installerPath = Join-Path \$desktopPath 'CleanFlash_Installer.exe'
-          if (-not (Test-Path \$installerPath)) {
           \$appUrl = 'https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe'
+          \$installerPath = Join-Path \$desktopPath 'CleanFlash_Installer.exe'
           Invoke-WebRequest -Uri \$appUrl -OutFile \$installerPath
-          }
 
-          # === Download & Extract Google Drive ZIP if folder empty ===
-          \$zipExtracted = Get-ChildItem -Path \$desktopPath | Where-Object { \$_ -is [System.IO.FileInfo] -or \$_ -is [System.IO.DirectoryInfo] }
-          if (\$zipExtracted.Count -le 1) {
+          # Download and Extract Google Drive ZIP
           \$zipUrl = 'https://drive.google.com/uc?export=download&id=1c5iBiZ82HDhurlOLSxErFHQPO1OL4Xmu'
           \$zipPath = Join-Path \$env:TEMP 'RDP_Files.zip'
           Invoke-WebRequest -Uri \$zipUrl -OutFile \$zipPath
           Expand-Archive -Path \$zipPath -DestinationPath \$desktopPath -Force
           Remove-Item \$zipPath -Force
-          }
 
-          # === Create Desktop Shortcut if missing ===
-          \$shortcutPath = Join-Path \$desktopPath '..\RDP_Files.lnk'
-          if (-not (Test-Path \$shortcutPath)) {
+          # Create Desktop Shortcut
           \$WshShell = New-Object -ComObject WScript.Shell
-          \$shortcut = \$WshShell.CreateShortcut(\$shortcutPath)
+          \$desktopShortcut = Join-Path \$desktopPath '..\RDP_Files.lnk'
+          \$shortcut = \$WshShell.CreateShortcut(\$desktopShortcut)
           \$shortcut.TargetPath = \$desktopPath
           \$shortcut.IconLocation = 'shell32.dll, 3'
           \$shortcut.Save()
-          }
           "@ | Out-File -FilePath $scriptPath -Encoding UTF8
 
+          # Create a single scheduled task for RDP login
           schtasks /Create /TN $taskName /TR "powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`"" /SC ONLOGON /RU RDP /F
-          Write-Host "Smart scheduled task created: dark mode + files + shortcut at RDP login (idempotent)"
+          Write-Host "Scheduled task created: dark mode + file download + shortcut at RDP login"
 
       - name: Verify RDP Accessibility
         run: |
