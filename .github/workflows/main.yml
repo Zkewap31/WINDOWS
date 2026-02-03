@@ -48,19 +48,6 @@ jobs:
                   exit 1
               }
               
-      - name: Download CleanFlash Installer
-        run: |
-           curl -L -o CleanFlash.exe https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe
-
-      - name: Download and extract zip from Google Drive
-        run: |
-          FILE_ID="1NzJ5SYE3eQk3aanhPfO1WPWj5KVG5tSC"
-          FILE_NAME="GRIMREV.zip"    
-          # Download the file using Google Drive direct download link
-          wget --no-check-certificate "https://drive.google.com/uc?export=download&id=${FILE_ID}" -O ${FILE_NAME}
-          # Extract the zip
-          unzip -o ${FILE_NAME} -d .
-        
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
@@ -88,8 +75,8 @@ jobs:
               Write-Error "Tailscale IP not assigned. Exiting."
               exit 1
           }
-          echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
-      
+          echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV 
+          
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
@@ -113,8 +100,7 @@ jobs:
           # Keep runner active indefinitely (or until manually cancelled)
           while ($true) {
               Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
-              Start-Sleep -Seconds 300
-
-
+              Start-Sleep -Seconds 300   
+              
           }
            
