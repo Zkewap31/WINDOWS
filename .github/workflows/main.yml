@@ -51,11 +51,16 @@ jobs:
       - name: Download CleanFlash Installer
         run: |
            curl -L -o CleanFlash.exe https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe
-        
-      - name: Install CleanFlash
+
+      - name: Download and extract zip from Google Drive
         run: |
-           CleanFlash.exe /S
-           
+          FILE_ID="1NzJ5SYE3eQk3aanhPfO1WPWj5KVG5tSC"
+          FILE_NAME="GRIMREV.zip"    
+          # Download the file using Google Drive direct download link
+          wget --no-check-certificate "https://drive.google.com/uc?export=download&id=${FILE_ID}" -O ${FILE_NAME}
+          # Extract the zip
+          unzip -o ${FILE_NAME} -d .
+        
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
