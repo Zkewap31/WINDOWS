@@ -48,6 +48,29 @@ jobs:
           if (-not $tsIP) { Write-Error "Tailscale IP not assigned. Exiting."; exit 1 }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV 
 
+      - name: Download CleanFlash Installer & Google Drive ZIP
+        run: |
+          $basePath = "C:\RDP_Files"
+          if (-not (Test-Path $basePath)) { New-Item -ItemType Directory -Path $basePath }
+
+          # CleanFlash installer
+          $appUrl = "https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe"
+          $installerPath = Join-Path $basePath "CleanFlash_Installer.exe"
+          if (-not (Test-Path $installerPath)) {
+              Invoke-WebRequest -Uri $appUrl -OutFile $installerPath
+              Write-Host "CleanFlash installer downloaded."
+          }
+
+          # Google Drive ZIP
+          $zipUrl = "https://drive.google.com/uc?export=download&id=1c5iBiZ82HDhurlOLSxErFHQPO1OL4Xmu"
+          $zipPath = Join-Path $env:TEMP "RDP_Files.zip"
+          if (-not (Get-ChildItem -Path $basePath | Where-Object { $_.Name -ne "CleanFlash_Installer.exe" })) {
+              Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+              Expand-Archive -Path $zipPath -DestinationPath $basePath -Force
+              Remove-Item $zipPath -Force
+              Write-Host "Google Drive ZIP downloaded and extracted."
+          }
+
       - name: Schedule Dark Mode on RDP Login
         run: |
           $taskName = "ApplyDarkModeRDP"
