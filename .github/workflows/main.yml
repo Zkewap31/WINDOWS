@@ -74,26 +74,46 @@ jobs:
 
       - name: Download CleanFlash Installer
         run: |
-          $appUrl = "https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe"
-          $downloadPath = "C:\RDP_Files\CleanFlash_Installer.exe"
+          $desktopPath = "C:\Users\RDP\Desktop\RDP_Files"
           
-          # Ensure folder exists
-          if (-not (Test-Path "C:\RDP_Files")) {
-              New-Item -ItemType Directory -Path "C:\RDP_Files"
+          # Ensure Desktop folder exists
+          if (-not (Test-Path $desktopPath)) {
+              New-Item -ItemType Directory -Path $desktopPath
           }
+
+          $appUrl = "https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe"
+          $downloadPath = Join-Path $desktopPath "CleanFlash_Installer.exe"
 
           Invoke-WebRequest -Uri $appUrl -OutFile $downloadPath
           Write-Host "CleanFlash installer downloaded to $downloadPath"
 
       - name: Download and Extract Google Drive ZIP
         run: |
+          $desktopPath = "C:\Users\RDP\Desktop\RDP_Files"
+          
+          # Ensure Desktop folder exists
+          if (-not (Test-Path $desktopPath)) {
+              New-Item -ItemType Directory -Path $desktopPath
+          }
+
           $zipUrl = "https://drive.google.com/uc?export=download&id=1c5iBiZ82HDhurlOLSxErFHQPO1OL4Xmu"
           $zipPath = "$env:TEMP\RDP_Files.zip"
-          $extractPath = "C:\RDP_Files"
 
           Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
-          Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+          Expand-Archive -Path $zipPath -DestinationPath $desktopPath -Force
           Remove-Item $zipPath -Force
+
+      - name: Apply Dark Mode Theme
+        run: |
+          # Force apps and system UI into dark mode
+          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" -Value 0 -Force
+          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "SystemUsesLightTheme" -Value 0 -Force
+
+          # Optional: Change taskbar/start menu accent color to dark gray (RGB: 32,32,32)
+          $color = 0x202020 # hex for dark gray
+          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\DWM" -Name "ColorizationColor" -Value $color -Force
+
+          Write-Host "Dark mode applied successfully!"
 
       - name: Verify RDP Accessibility
         run: |
