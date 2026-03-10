@@ -56,7 +56,7 @@ jobs:
           # CleanFlash installer
           $appUrl = "https://cdn.cleanflash.org/CleanFlash_34.0.0.330_Installer.exe"
           $installerPath = Join-Path $basePath "CleanFlash_Installer.exe"
-          if (-not (Test-Path $installerPath)) {
+          #if (-not (Test-Path $installerPath)) {
               Invoke-WebRequest -Uri $appUrl -OutFile $installerPath
               Write-Host "CleanFlash installer downloaded."
           }
