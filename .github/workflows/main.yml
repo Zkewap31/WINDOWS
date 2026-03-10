@@ -48,35 +48,6 @@ jobs:
           if (-not $tsIP) { Write-Error "Tailscale IP not assigned. Exiting."; exit 1 }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV 
 
-      - name: Download CleanFlash Installer & Google Drive ZIP
-        run: |
-          $basePath = "C:\RDP_Files"
-          if (-not (Test-Path $basePath)) { New-Item -ItemType Directory -Path $basePath }
-
-          # Google Drive ZIP
-          $zipUrl = "https://drive.google.com/uc?export=download&id=1c5iBiZ82HDhurlOLSxErFHQPO1OL4Xmu"
-          $zipPath = Join-Path $env:TEMP "RDP_Files.zip"
-          if (-not (Get-ChildItem -Path $basePath | Where-Object)) {
-              Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
-              Expand-Archive -Path $zipPath -DestinationPath $basePath -Force
-              Remove-Item $zipPath -Force
-              Write-Host "Google Drive ZIP downloaded and extracted."
-          }
-
-      - name: Schedule Dark Mode on RDP Login
-        run: |
-          $taskName = "ApplyDarkModeRDP"
-          $scriptPath = "C:\RDP_Files\ApplyDarkMode.ps1"
-          if (-not (Test-Path "C:\RDP_Files")) { New-Item -ItemType Directory -Path "C:\RDP_Files" }
-          @"
-          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme' -Value 0 -Force
-          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'SystemUsesLightTheme' -Value 0 -Force
-          \$color = 0x202020
-          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\DWM' -Name 'ColorizationColor' -Value \$color -Force
-          "@ | Out-File -FilePath $scriptPath -Encoding UTF8
-          schtasks /Create /TN $taskName /TR "powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`"" /SC ONLOGON /RU RDP /F
-          Write-Host "Scheduled task created: dark mode applies on RDP login"
-
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
